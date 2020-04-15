@@ -1,0 +1,43 @@
+1, Wybierz odpowiednią strategię migracji w oparciu o dostarczony opis.
+lift and shift
+2. W punktach napisz jak podszedłbyś do tej migracji, które kroki zrealizowałbyś w pierwszej kolejności
+   - projekt techniczny - audyt onprem, projekt migracji co na co step by step
+   - pilot\test weryfikacja przejsc tele, weryfikacja pojektu technicznego
+   - Testy i akceptacja propozycji rozwiazania
+   - produkcja - migraja do cloud
+   - monitoring i optymalizacja
+
+   
+
+3.Firma wymaga, abyś przygotował demo końcowej architektury i zaprezentował je podczas umówionego spotkania w siedzibie firmy.
+
+ - tworze bucket 
+gsutil mb -c standard -l europe-west1 gs://aro-tydzien3
+Creating gs://aro-tydzien3/...
+- kopiuje przygotowany wczesniej obraz z ktorego moge skrorzystac aby zaoszczedzic czas :) 
+gsutil cp gs://mountkirk-games-image/mountkirk-games.vmdk gs://aro-tydzien3
+- import obrazu 
+gcloud compute images import aro-img-tydzien3 --os=debian-9 --source-file=gs://araro-tydzien3/mountkirk-games.vmdk
+
+[import-and-translate.translate.create-image]: 2020-04-15T16:11:13Z CreateImages: Creating image "aro-img-tydzien3".
+[import-and-translate.translate]: 2020-04-15T16:12:34Z Step "create-image" (CreateImages) successfully finished.
+ 
+- tworze vm
+gcloud compute instances create aro-vm-tydzien3 --zone=europe-west1-b --machine-type=f1-micro --image=aro-img-tydzien3
+
+Created [https://www.googleapis.com/compute/v1/projects/...europe-west1-b/instances/aro-vm-tydzien3].
+
+- otwieram FW w dzisieszszych czasach https 
+
+gcloud compute firewall-rules create default-allow-https-tydzien3 --direction=INGRESS --priority=1000 --network=default --action=ALLOW --rules=tcp:443 --source-ranges=0.0.0.0/0 --target-tags=https-server
+
+Creating firewall...done.
+NAME                          NETWORK  DIRECTION  PRIORITY  ALLOW    DENY  DISABLED
+default-allow-https-tydzien3  default  INGRESS    1000      tcp:443        False
+
+
+Pojawia nam sie rozjechany wordpress zaklądam ze był taki :) i klient go akceptuje jak nie wybieramy inna metodę migracji.
+
+
+Budujac wysokodostępne śrdowisko staramy sie budować A-A instancje w roznych 2 roznych regionach i zonach. Dobrą praktyka jest uzycie instances group. Jako frontend load balancer ktory bedzie ten ruch rozrzucac. W przypadku owego srodowiska zaproponowałbym CDN. 
+ 
