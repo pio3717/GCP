@@ -1,0 +1,56 @@
+1. 
+aro@vm1:~$ gsutil ls  gs://gcp-kms-bucketar
+gs://gcp-kms-bucketar/text.txt
+
+aro@vm1:~$ gsutil cat  gs://gcp-kms-bucketar/text.txt
+ala ma kota
+
+aro@vm1:~$ gsutil rm  gs://gcp-kms-bucketar/text.txt
+Removing gs://gcp-kms-bucketar/text.txt...
+AccessDeniedException: 403 Insufficient Permission
+
+2. 
+
+Tworze konto serwisowe 
+
+Tworze bucket
+Tworze keyring
+key symetryczny
+
+gcloud kms encrypt --location global --keyring ARkey-ring --key my-key-AR --plaintext-file text.txt --ciphertext-file text.enc
+ls
+text.enc  text.txt
+
+
+gcloud kms decrypt --location global --keyring ARkey-ring --key my-key-AR --ciphertext-file text.enc --plaintext-file text.dec
+ls
+text.dec  text.enc  text.txt
+
+cat text.txt
+ala ma kota
+
+
+cat text.enc
+4J(t?A45^UF%\T
+
+
+cat text.dec
+ala ma kota
+
+
+3.
+Tworze role z uprawneinaimi cloud storage:
+storage.objects.get
+storage.objects.list
+oraz uprawnienia do key:
+cloudkms.cryptoKeyVersions.useToDecrypt
+cloudkms.cryptoKeyVersions.useToEncrypt
+cloudkms.cryptoKey.Versions.viewPublicKey
+
+Przypisanie roli do usera 
+
+
+
+
+
+
