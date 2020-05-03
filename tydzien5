@@ -1,0 +1,62 @@
+MountKirk Games poprosiło cię, abyś przeprojektował aktualną architekturę, która będzie obejmowała nowe wytyczone firmowe standardy:
+
+1.    Na ten moment firma nie może zrezygnować z maszyn wirtualnych, dlatego nowa architektura musi korzystać z wirtualnych maszyn postawionych z niestandardowego obrazu, dostarczonego bezpośrednio przez firmę.
+
+2.    Rozwiązanie musi dynamicznie skalować się w górę lub w dół w zależności od aktywności w grze - bez większej ingerencji specjalistów
+
+3.    Gracze korzystający z funkcjonalności firmy pochodzą z całego świata, a w szczególności z Stanów Zjednoczonych oraz Europy. Poprzez odpowiednie umiejscowienie rozwiązania MountKirk chce zredukować opóźnienie jakie występuje dla osób łączących się z US.
+
+4.    Rozwiązanie musi zapobiegać jakiejkolwiek przerwie w dostarczaniu funkcjonalności na wypadek awarii np. regionu Google Cloud.
+
+5.    Rozwiązanie musi umożliwość łatwe i bezpiecznie wdrażanie nowych wersji oprogramowania do instancji bez konieczności wpływania na całe środowisko ( możesz dokładnie opisać ten proces jak to działa! ?? - klient napewno to doceni. ) 
+
+
+
+Poropozycja HLA:
+2 Regiony 3 zony per region +instance grupy+ frontend LB + CND 
+
+
+a) Template:
+
+$ gcloud compute instance-templates create template-1 --source-instance=lamp-5-vm --source-instance-zone=europe-wes
+t3-a
+Created [https://www.googleapis.com/compute/v1/projects/superb-webbing-272319/global/instanceTemplates/template-1].
+NAME        MACHINE_TYPE  PREEMPTIBLE  CREATION_TIMESTAMP
+template-1  g1-small                   2020-05-03T08:39:21.616-07:00
+$ gcloud compute instance-templates create template-2 --source-instance=tomcat-5-vm --source-instance-zone=europe-w
+est3-b
+Created [https://www.googleapis.com/compute/v1/projects/superb-webbing-272319/global/instanceTemplates/template-2].
+NAME        MACHINE_TYPE  PREEMPTIBLE  CREATION_TIMESTAMP
+template-2  g1-small                   2020-05-03T08:40:00.601-07:00
+$ gcloud compute instance-templates list
+NAME        MACHINE_TYPE  PREEMPTIBLE  CREATION_TIMESTAMP
+template-1  g1-small                   2020-05-03T08:39:21.616-07:00
+template-2  g1-small                   2020-05-03T08:40:00.601-07:00
+$              2020-05-03T07:47:03.547-07:00
+
+b) MIG
+
+
+$ gcloud compute instance-groups managed create mig1 --template template-1 --base-instance-name formmig1v1 --size 3 --region europe-west3
+Created [https://www.googleapis.com/compute/v1/projects/superb-webbing-272319/regions/europe-west3/instanceGroupManagers/mig1].
+NAME  LOCATION      SCOPE   BASE_INSTANCE_NAME  SIZE  TARGET_SIZE  INSTANCE_TEMPLATE  AUTOSCALED
+mig1  europe-west3  region  formmig1v1          0     3            template-1         no
+
+
+c) autoscaling 
+
+gcloud compute instance-groups managed set-autoscaling mig1 --region europe-west3 --min-num-replicas 3 --max-num-replicas 6 --target-cpu-utilization "0.6"
+Created [https://www.googleapis.com/compute/v1/projects/superb-webbing-272319/regions/europe-west3/autoscalers/mig1-qrlm].
+---
+
+d) canary
+gcloud compute instance-groups managed rolling-action start-update mig1 --version template=template-1 --canary-version  template=template-2,target-size=50%  --region europe-west3
+
+Updated [https://www.googleapis.com/compute/v1/projects/superb-webbing-272319/regions/europe-west3/instanceGroupManagers/mig1].
+---
+
+e) Others:
+gcloud compute instance-groups managed rolling-action start-update mig1 --version template=template-2 --region europe-west3
+
+Updated [https://www.googleapis.com/compute/v1/projects/superb-webbing-272319/regions/europe-west3/instanceGroupManagers/mig1].
+---
